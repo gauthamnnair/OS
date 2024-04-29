@@ -1,114 +1,101 @@
-page_frame=[]
-page_ref=[]
-time = []
-index = 0
-hit_fifo = 0
-hit_lru = 0
-hit_optimal = 0
+def fifo_algorithm(pages, num_frames):
+    print("FIFO Algorithm : ")
+    frames = [-1] * num_frames
+    page_faults = 0
+    hits = 0
+    for i, page in enumerate(pages):
+        page_found = False
 
-num_frame = int(input("Enter the Size of Page Frame: "))
-num_ref = int(input("Enter the Size of Page Reference: "))
+        # Check if page is already in memory
+        for j in range(num_frames):
+            if frames[j] == page:
+                page_found = True
+                hits += 1
+                break
 
-# Initialize time for LRU algorithm
-for _ in range(num_frame):
-    time.append(0)
+        # If page is not in memory, replace oldest page with new page
+        if not page_found:
+            frame_pointer = i % num_frames
+            frames[frame_pointer] = page
+            page_faults += 1
 
-print(f"Enter {num_ref} values of Page references:")
-# Use split to separate the digits and convert them to integers
-page_ref = list(map(int, input().split()))
+        # Print current state of frames
+        print('\t'.join(str(frame) if frame != -1 else '-' for frame in frames))
 
-# FIFO Algorithm
-print("\nFIFO Algorithm:")
-for _ in range(num_frame):
-    page_frame.append(-1)
+    print("\nPage Faults: ", page_faults)
+    print("Total Hits : ", hits)
 
-for i in page_ref:
-    if i not in page_frame:
-        if -1 in page_frame:  # If there is an empty slot
-            index = page_frame.index(-1)
-            page_frame[index] = i
+def lru_algorithm(pages, num_frames):
+    print("\nLRU Algorithm : ")
+    frames = [-1] * num_frames
+    page_faults = 0
+    hits = 0
+    used = [0] * num_frames
+
+    for i, page in enumerate(pages):
+        page_found = False
+
+        # Check if page is already in memory
+        for j in range(num_frames):
+            if frames[j] == page:
+                page_found = True
+                hits += 1
+                used[j] = i
+                break
+
+        # If page is not in memory, find least recently used page to replace
+        if not page_found:
+            # If there is an empty frame, use it
+            if -1 in frames:
+                frame_to_replace = frames.index(-1)
+            else:
+                # Otherwise, find least recently used frame to replace
+                frame_to_replace = used.index(min(used))
+            frames[frame_to_replace] = page
+            used[frame_to_replace] = i
+            page_faults += 1
+
+        # Print current state of frames
+        print('\t'.join(str(frame) if frame != -1 else '-' for frame in frames))
+    print("\nPage Faults: ", page_faults)
+    print("Total Hits : ", hits)
+
+def optimal_algorithm(pages, num_frames):
+    print("\nOptimal Algorithm : ")
+    frames = [-1] * num_frames
+    page_faults = 0
+    hits = 0
+
+    for i, page in enumerate(pages):
+        page_found = False
+
+        # Check if page is already in memory
+        if page in frames:
+            page_found = True
+            hits += 1
         else:
-            page_frame.pop(0)
-            page_frame.append(i)
-    else:
-        hit_fifo += 1
-    for j in page_frame:
-        if j == -1:
-            print('-', end="\t")
-        else:
-            print(j, end="\t")
-    print()
+            # If there is an empty frame, use it
+            if -1 in frames:
+                frame_to_replace = frames.index(-1)
+            else:
+                # Find the page with the longest future distance
+                future_distances = [pages[i+1:].index(frames[j]) if frames[j] in pages[i+1:] else len(pages) for j in range(num_frames)]
+                frame_to_replace = future_distances.index(max(future_distances))
+            frames[frame_to_replace] = page
+            page_faults += 1
 
-print("\nFIFO Hit Ratio: ", hit_fifo/num_ref)
-print("FIFO Miss Ratio: ", 1-(hit_fifo/num_ref))
+        # Print current state of frames
+        print('\t'.join(str(frame) if frame != -1 else '-' for frame in frames))
 
-# LRU Algorithm
-page_frame.clear()  # Clearing the page frame for the LRU algorithm
-print("\nLRU Algorithm:")
-for _ in range(num_frame):
-    page_frame.append(-1)
+    print("\nPage Faults: ", page_faults)
+    print("Total Hits : ", hits)
 
-for i in page_ref:
-    if i not in page_frame:
-        if -1 in page_frame:  # If there is an empty slot
-            index = page_frame.index(-1)
-            page_frame[index] = i
-        else:
-            least_recently_used = min(time)
-            index = time.index(least_recently_used)
-            page_frame[index] = i
-        time[index] = 0
-    else:
-        hit_lru += 1
-        index = page_frame.index(i)
-        time[index] = 0
-    for j in page_frame:
-        if j == -1:
-            print('-', end="\t")
-        else:
-            print(j, end="\t")
-    print()
-    
-    for j in range(num_frame):
-        time[j] += 1
+# Take input from user
+reference_string = input("Enter the reference string separated by spaces: ").split()
+reference_string = [int(page) for page in reference_string]
+num_frames = int(input("Enter the number of frames: "))
 
-print("\nLRU Hit Ratio: ", hit_lru/num_ref)
-print("LRU Miss Ratio: ", 1-(hit_lru/num_ref))
+fifo_algorithm(reference_string, num_frames)
+lru_algorithm(reference_string, num_frames)
+optimal_algorithm(reference_string, num_frames)
 
-# Optimal Algorithm
-page_frame.clear()  # Clearing the page frame for the Optimal algorithm
-print("\nOptimal Algorithm:")
-for _ in range(num_frame):
-    page_frame.append(-1)
-
-for i in range(len(page_ref)):
-    if page_ref[i] not in page_frame:
-        if -1 in page_frame:  # If there is an empty slot
-            index = page_frame.index(-1)
-            page_frame[index] = page_ref[i]
-        else:
-            page_frame_full = True
-            farthest = i + 1
-            replace_index = None
-            for j in range(num_frame):
-                if page_frame[j] not in page_ref[i:]:
-                    replace_index = j
-                    break
-                else:
-                    temp = page_ref[i:].index(page_frame[j])
-                    if temp > farthest:
-                        farthest = temp
-                        replace_index = j
-            if replace_index is not None:  # Ensure replace_index is assigned
-                page_frame[replace_index] = page_ref[i]
-    else:
-        hit_optimal += 1
-    for j in page_frame:
-        if j == -1:
-            print('-', end="\t")
-        else:
-            print(j, end="\t")
-    print()
-
-print("\nOptimal Hit Ratio: ", hit_optimal/num_ref)
-print("Optimal Miss Ratio: ", 1-(hit_optimal/num_ref))
